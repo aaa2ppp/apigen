@@ -1,0 +1,71 @@
+package handler
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strconv"
+
+	"matchmaker/internal/model"
+)
+
+type UserCreator interface {
+	Create(cxt context.Context, params model.CreateUser) error
+}
+
+func NewCreateUser(serv UserCreator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			MethodNotAllowed(w, r)
+			return
+		}
+		var p createUserParams
+		if err := p.getFromRequest(r); err != nil {
+			WriteApiError(w, ApiError{HTTPStatus: http.StatusBadRequest, Err: err})
+			return
+		}
+		if err := p.Validate(); err != nil {
+			WriteApiError(w, ApiError{HTTPStatus: http.StatusBadRequest, Err: err})
+			return
+		}
+		if err := serv.Create(r.Context(), p.CreateUser); err != nil {
+			switch err := err.(type) {
+			case *ApiError:
+				WriteApiError(w, *err)
+			case ApiError:
+				WriteApiError(w, err)
+			default:
+				WriteApiError(w, ApiError{HTTPStatus: http.StatusInternalServerError, Err: err})
+			}
+			return
+		}
+	}
+}
+
+type createUserParams struct {
+	model.CreateUser
+}
+
+func (p *createUserParams) getFromRequest(r *http.Request) error {
+	{
+		s := r.FormValue("name")
+		p.Name = s
+	}
+	{
+		s := r.FormValue("skill")
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return errors.New("skill must be double")
+		}
+		p.Skill = v
+	}
+	{
+		s := r.FormValue("latency")
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return errors.New("latency must be double")
+		}
+		p.Latency = v
+	}
+	return nil
+}
