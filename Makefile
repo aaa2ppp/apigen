@@ -4,8 +4,10 @@ build: genapi
 run: build
 	bin/server
 
-build_apigen:
-	go build -o ./bin/apigen ./cmd/apigen
+genapi: apigen_tool
+	tools/apigen/bin/apigen ./internal/service && gofmt -w ./internal/service/*_apigen.go
 
-genapi: build_apigen
-	./bin/apigen ./internal/api/api.go ./internal/api/api_handlers.go && gofmt -w ./internal/api/api_handlers.go
+apigen_tool:
+	cd tools/apigen && make build
+
+.PHONY: build run genapi apigen_tool

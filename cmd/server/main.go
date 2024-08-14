@@ -9,24 +9,19 @@ import (
 	"syscall"
 	"time"
 
-	"matchmaker/internal/api"
-	"matchmaker/internal/model"
+	"matchmaker/internal/service"
 )
 
 const (
-	readTimeout  = time.Duration(time.Second * 60)
-	writeTimeout = time.Duration(time.Second * 60)
+	serverAddr   = "0.0.0.0:8080"
+	readTimeout  = time.Duration(60 * time.Second)
+	writeTimeout = time.Duration(60 * time.Second)
 )
 
 func main() {
-	// mux := http.NewServeMux()
-	// mux.Handle("/", handler.NotFound)
-	// mux.Handle("/ok", handler.Ok)
-	// mux.Handle("/users", handler.NewCreateUser(userCreatorStub{})) // TODO
-
 	srv := http.Server{
-		Addr:         "0.0.0.0:8080",
-		Handler:      &api.Api{UserCreator: &userCreatorStub{}},
+		Addr:         serverAddr,
+		Handler:      &service.Service{},
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 	}
@@ -49,11 +44,4 @@ func main() {
 		log.Fatalf("HTTP server ListenAndServe: %v", err)
 	}
 	<-done
-}
-
-type userCreatorStub struct{}
-
-func (c userCreatorStub) Create(ctx context.Context, user model.CreateUser) (model.NewUser, error) {
-	log.Printf("Create user: %+v", user)
-	return model.NewUser{ID: 1}, nil
 }
